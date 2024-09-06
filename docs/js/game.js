@@ -7,62 +7,57 @@ const port = 3000;
 // Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Function to fetch data from IGDB
-const fetchAndDisplay = async () => {
-    const rgameId = Math.floor(Math.random() * 276529);
-    const url = "https://api.igdb.com/v4/games/";
-    const payload = `fields name, screenshots.url;\r\nwhere id = ${rgameId};`;
-    const headers = {
-        'Client-ID': 'pewgatdhkl21mnroaq7yxm55sgyjdj',
-        'Authorization': 'Bearer avt0rgh3ocsjie520q2hgz57ot3udw',
-        'Content-Type': 'application/json',
-        'Cookie': '__cf_bm=5LhK7yZhB2XYECaEXqn6epHZYaTZa.UzlZDft2v_Fho-1713901121-1.0.1.1-hqXMpCnQZwGlYKIDg2.L_WQK9XVIMmOquHjUc5F7Rc18ePzNo.QQ0zkQmyH6g8EMOy3aG5MvGCtp7jBu4Vrlgg'
-    };
+const getRandomGameScreenshot = async () => {
+  let rgame_id = Math.floor(Math.random() * 276529);
+  let url = "https://api.igdb.com/v4/games/";
+  
+  const headers = {
+    'Client-ID': 'placeholder',
+    'Authorization': 'Bearer placeholder',
+    'Content-Type': 'application/json',
+    'Cookie': 'placeholder'
+  };
 
-    let response = await axios.post(url, payload, { headers });
-    let data = response.data;
+  let payload = `fields name, screenshots.url;\nwhere id = ${rgame_id};`;
 
-    while (data.length < 1 || !data[0].screenshots) {
-        const rgameId = Math.floor(Math.random() * 276529);
-        const payload = `fields name, screenshots.url;\r\nwhere id = ${rgameId};`;
-        response = await axios.post(url, payload, { headers });
-        data = response.data;
-    }
+  let response = await axios.post(url, payload, { headers });
+  let data = response.data;
 
-    const gameId = data[0].id;
+  // If no data or no screenshots, keep trying
+  while (data.length < 1 || !data[0].screenshots) {
+    rgame_id = Math.floor(Math.random() * 276529);
+    payload = `fields name, screenshots.url;\nwhere id = ${rgame_id};`;
+    response = await axios.post(url, payload, { headers });
+    data = response.data;
+  }
 
-    const releaseDateUrl = "https://api.igdb.com/v4/release_dates";
-    const releasePayload = `fields y, game;\r\nwhere game = ${gameId};\r\nsort y asc;`;
-    const releaseResponse = await axios.post(releaseDateUrl, releasePayload, { headers });
-    const releaseData = releaseResponse.data;
+  const game_id = data[0].id;
+  const game_name = data[0].name;
 
-    const randSc = Math.floor(Math.random() * data[0].screenshots.length);
-    const gameName = data[0].name;
-    let imageUrl = data[0].screenshots[randSc].url;
-    const releaseYear = releaseData.length ? releaseData[0].y : 'Unknown';
+  // Get release dates
+  url = "https://api.igdb.com/v4/release_dates";
+  payload = `fields y, game;\nwhere game = ${game_id};\nsort y asc;`;
+  let rd_response = await axios.post(url, payload, { headers });
+  let rd_data = rd_response.data;
 
-    imageUrl = `https://${imageUrl.slice(2)}`.replace("thumb", "1080p");
+  // Select a random screenshot
+  const rand_sc = Math.floor(Math.random() * data[0].screenshots.length);
+  let image_url = data[0].screenshots[rand_sc].url;
 
-    return { imageUrl, gameName, releaseYear };
+  // Check for release year
+  let release_year = rd_data.length > 0 ? rd_data[0].y : null;
+
+  // Fix URL for higher resolution
+  image_url = `https://${image_url.slice(2)}`;
+  image_url = image_url.replace("thumb", "1080p");
+
+  console.log(release_year);
+
+  return { image_url, game_name, release_year };
 };
 
-// Route to serve the HTML file
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Route to get the game data
-app.get('/api/game', async (req, res) => {
-    try {
-        const { imageUrl, gameName, releaseYear } = await fetchAndDisplay();
-        res.json({ imageUrl, gameName, releaseYear });
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('An error occurred.');
-    }
-});
-
-// Start the server
-app.listen(port, () => {
-    console.log(`Server is running at http://localhost:${port}`);
+getRandomGameScreenshot().then(result => {
+  console.log(result);
+}).catch(error => {
+  console.error(error);
 });
