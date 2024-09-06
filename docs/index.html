@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centered Layout</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/game.js" defer></script>
+</head>
+<body>
+    <div class="title-container">
+        <h1>When Dev'd</h1>
+    </div>
+    
+    <!-- Game name div -->
+    <div class="gameName">
+        <h2 id="gameName" style="visibility: hidden;"></h2>
+    </div>
+
+    <!-- Image Div -->
+    <div class="container" style="text-align: center; margin-top: 5em;">
+        <!-- Image to be enlarged and onclick() function call-->
+        <img id="img1" src="" alt="Game Image" onclick="enlargeImg()"/>
+        <br /><br /><br />
+        <!-- Button to reset the Image size -->
+        <button onclick="resetImg()">Reset</button>
+    </div>
+
+    <!-- Dropdown menu -->
+    <div class="container">
+        <input type="text" id="searchInput" placeholder="Search...">
+        <select id="myDropdown"></select>                
+    </div>
+    
+    <!-- Additional Search and Results -->
+    <div class="container">
+        <input type="text" id="search" placeholder="Search...">
+        <ul id="results"></ul>
+    </div>
+
+    <button onclick="revealName()">Reveal Name</button>
+    
+    <!-- Slider for Year -->
+    <div class="slidecontainer">
+        <div class="slider-container">
+            <input type="range" min="1948" max="2024" value="1986" class="slider" id="year-range" name="Release Year">
+            <div class="year-box" id="year-box"></div>
+        </div>
+        <p>Year: <output id="value"></output></p>
+    </div>
+
+    <script>
+        // Function to reveal the game name
+        function revealName() {
+            const nameElement = document.getElementById("gameName");
+            nameElement.style.visibility = "visible";
+        }
+
+        // Function to fetch and display game data
+        async function fetchGameData() {
+            try {
+                const response = await fetch('/api/game');
+                const data = await response.json();
+
+                // Update the HTML with game data
+                document.getElementById('gameName').textContent = data.gameName;
+                document.getElementById('img1').src = data.imageUrl;
+                document.getElementById('value').textContent = data.releaseYear;
+            } catch (error) {
+                console.error('Error fetching game data:', error);
+            }
+        }
+
+        // Call fetchGameData when the page loads
+        window.onload = fetchGameData;
+
+        // Slider functionality
+        const value = document.querySelector("#value");
+        const sliderInput = document.querySelector("#year-range");
+        const yearBox = document.querySelector("#year-box");
+        value.textContent = sliderInput.value;
+        yearBox.textContent = sliderInput.value;
+        
+        sliderInput.addEventListener("input", (event) => {
+            value.textContent = event.target.value;
+            yearBox.textContent = event.target.value;
+            // Adjust the position of the year box dynamically
+            const min = event.target.min;
+            const max = event.target.max;
+            const percent = ((event.target.value - min) / (max - min)) * 100;
+            yearBox.style.left = `calc(${percent}% - ${yearBox.offsetWidth / 2}px)`; // Adjust the offset based on the width of the box
+        });
+
+        // Handle JSON dropdown options
+        const textInput = document.getElementById('searchInput');
+        const dropdown = document.getElementById('myDropdown');
+
+        fetch('/data.json')
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option.id;
+                optionElement.textContent = option.name;
+                dropdown.appendChild(optionElement);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching JSON:', error);
+        });
+
+        // Filter dropdown based on input
+        textInput.addEventListener('input', function() {
+            const filter = textInput.value.toLowerCase();
+            const options = dropdown.getElementsByTagName('option');
+
+            for (let i = 0; i < options.length; i++) {
+                const text = options[i].textContent.toLowerCase();
+                options[i].style.display = text.includes(filter) ? '' : 'none';
+            }
+        });
+
+        // Functions to handle image enlargement and reset
+        function enlargeImg() {
+            document.getElementById('img1').style.transform = 'scale(1.5)';
+        }
+
+        function resetImg() {
+            document.getElementById('img1').style.transform = 'scale(1)';
+        }
+    </script>
+</body>
+</html>
